@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Soccer ball">
+  <!-- Original, openly-licensed (CC0) placeholder used in the public repo in place
+       of the Firefox/KITT mascot. The official build swaps in the KITT art. -->
+  <defs>
+    <radialGradient id="g" cx="40%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e9edf2"/>
+    </radialGradient>
+  </defs>
+  <circle cx="60" cy="60" r="54" fill="url(#g)" stroke="#1b1f24" stroke-width="3"/>
+  <!-- center pentagon -->
+  <polygon points="60,40 77,53 70,73 50,73 43,53" fill="#1b1f24"/>
+  <!-- partial edge pentagons -->
+  <polygon points="60,8 73,17 68,30 52,30 47,17" fill="#1b1f24" opacity="0.9"/>
+  <polygon points="108,52 101,69 86,64 86,47 101,41" fill="#1b1f24" opacity="0.9"/>
+  <polygon points="92,104 76,99 79,83 95,84 99,99" fill="#1b1f24" opacity="0.9"/>
+  <polygon points="28,104 21,88 34,78 47,88 41,103" fill="#1b1f24" opacity="0.9"/>
+  <polygon points="12,52 27,41 38,52 33,67 17,64" fill="#1b1f24" opacity="0.9"/>
+  <!-- seams from center to each edge patch -->
+  <g stroke="#1b1f24" stroke-width="2.4" fill="none" opacity="0.7">
+    <line x1="60" y1="40" x2="60" y2="30"/>
+    <line x1="77" y1="53" x2="86" y2="47"/>
+    <line x1="70" y1="73" x2="79" y2="83"/>
+    <line x1="50" y1="73" x2="41" y2="83"/>
+    <line x1="43" y1="53" x2="34" y2="47"/>
+  </g>
+</svg>

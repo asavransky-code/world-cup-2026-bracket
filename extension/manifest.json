@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "World Cup 2026 Bracket Pool",
+  "version": "0.1.0",
+  "description": "Predict the FIFA World Cup 2026, score against results, and see your team's leaderboard on every new tab.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "wc-bracket-pool@local.dev"
+    }
+  },
+  "icons": {
+    "48": "images/trophy.svg",
+    "96": "images/trophy.svg"
+  },
+  "action": {
+    "default_title": "World Cup 2026 Pool",
+    "default_icon": {
+      "16": "images/trophy.svg",
+      "32": "images/trophy.svg"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "permissions": ["topSites"],
+  "host_permissions": [
+    "https://docs.google.com/*",
+    "https://raw.githubusercontent.com/*"
+  ],
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  }
+}
