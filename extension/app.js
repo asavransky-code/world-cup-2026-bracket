@@ -28,6 +28,7 @@
       thirdRanking: [], // codes, top -> bottom (up to 8)
       knockoutPicks: {}, // matchId -> winner code
       locked: false,
+      lockedAt: null, // ISO timestamp of manual lock (tiebreaker: earliest wins)
       step: "groups",
       devHideResults: false, // Phase 0: preview the pre-tournament empty state
     };
@@ -129,13 +130,53 @@
     </div>`;
   }
 
+  // ---------- lock enforcement ----------
+  function lockMsAt() {
+    const t = Date.parse(D.LOCK_DATETIME);
+    return isNaN(t) ? null : t;
+  }
+  function editingClosed() {
+    const t = lockMsAt();
+    return t !== null && Date.now() >= t;
+  }
+  // A bracket is locked if the player locked it manually OR kickoff has passed.
+  function picksLocked() {
+    return state.locked || editingClosed();
+  }
+  function fmtCountdown(ms) {
+    if (ms <= 0) return "now";
+    const s = Math.floor(ms / 1000);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m ${sec}s`;
+    return `${m}m ${sec}s`;
+  }
+  // Live-update the header countdown; when it hits zero, re-render to flip the UI
+  // into the locked (read-only) state.
+  let lockTicker = null;
+  function startLockTicker() {
+    if (lockTicker) { clearInterval(lockTicker); lockTicker = null; }
+    const t = lockMsAt();
+    if (t === null || editingClosed()) return;
+    lockTicker = setInterval(() => {
+      const el = document.getElementById("lock-countdown");
+      if (!el) { clearInterval(lockTicker); lockTicker = null; return; }
+      const rem = t - Date.now();
+      if (rem <= 0) { clearInterval(lockTicker); lockTicker = null; render(); return; }
+      el.textContent = "Locks in " + fmtCountdown(rem);
+    }, 1000);
+  }
+
   // ---------- render ----------
   const appEl = document.getElementById("app");
   const actionsEl = document.getElementById("topbar-actions");
 
   function render() {
     document.body.classList.toggle("on-name", !state.displayName);
-    if (state.locked) state.step = "dashboard";
+    if (picksLocked()) state.step = "dashboard";
     if (!state.displayName) return renderName();
     if (state.step === "dashboard") return renderDashboard();
     if (!STEPS.includes(state.step)) state.step = "groups";
@@ -148,16 +189,29 @@
       return;
     }
     const parts = [`<span class="progress-note">${esc(state.displayName)}</span>`];
-    if (state.locked) {
+    const open = !editingClosed();
+    const t = lockMsAt();
+    // Countdown to lock, shown whenever editing is still open (wizard + dashboard).
+    if (open && t !== null) {
+      parts.push(
+        `<span class="lock-countdown" id="lock-countdown" title="Time left to edit your bracket">Locks in ${fmtCountdown(
+          t - Date.now()
+        )}</span>`
+      );
+    }
+    if (picksLocked()) {
       parts.push(
         `<button data-action="toggle-results" class="ghost">${
           state.devHideResults ? "Sim: show results" : "Sim: pre-tournament"
         }</button>`
       );
-      parts.push(`<button data-action="unlock">Edit picks</button>`);
+      // "Edit picks" only while editing is open; after kickoff it's frozen.
+      if (open) parts.push(`<button data-action="unlock">Edit picks</button>`);
+      else parts.push(`<span class="lock-countdown locked" title="Editing closed at kickoff">🔒 Picks locked</span>`);
     }
     parts.push(`<button class="ghost danger" data-action="reset">Reset</button>`);
     actionsEl.innerHTML = parts.join("");
+    startLockTicker();
   }
 
   function renderName() {
@@ -496,17 +550,48 @@
     return rows;
   }
 
-  function scoreOf(picksObj) {
+  // The two finalists in a bracket = the teams in the final match.
+  function finalistsOf(bracket) {
+    const fr = bracket.rounds.find((r) => r.id === "final");
+    const fm = fr && fr.matches[0];
+    return fm ? [fm.a, fm.b].filter(Boolean) : [];
+  }
+
+  // Score a player's picks and capture the tiebreaker fields (champion correct,
+  // count of correct finalists). lockedAt is the third tiebreaker, carried separately.
+  function evalPicks(picksObj) {
+    const actual = getActual();
     try {
-      return E.score(
+      const res = E.score(
         picksObj.groupPicks || {},
         picksObj.thirdRanking || [],
         picksObj.knockoutPicks || {},
-        getActual()
-      ).total;
+        actual
+      );
+      const af = actual.final || [];
+      return {
+        score: res.total,
+        championRight: !!(res.bracket.champion && res.bracket.champion === actual.champion),
+        finalistsCorrect: finalistsOf(res.bracket).filter((t) => af.includes(t)).length,
+      };
     } catch (e) {
-      return 0;
+      return { score: 0, championRight: false, finalistsCorrect: 0 };
     }
+  }
+
+  // Tiebreakers (REQUIREMENTS): score, then champion correct, then more correct
+  // finalists, then earliest lock.
+  function lockMsOf(p) {
+    const t = p.lockedAt ? Date.parse(p.lockedAt) : NaN;
+    return isNaN(t) ? Infinity : t;
+  }
+  function cmpBoard(a, b) {
+    return (
+      b.score - a.score ||
+      (b.championRight ? 1 : 0) - (a.championRight ? 1 : 0) ||
+      (b.finalistsCorrect || 0) - (a.finalistsCorrect || 0) ||
+      lockMsOf(a) - lockMsOf(b)
+    );
   }
 
   // Fetch + parse the responses CSV once. Dedup to the latest row per userId,
@@ -534,7 +619,10 @@
           byUser.set(uid, { name: (cells[ci.name] || "Player").trim(), picks: parsed });
         }
         picks.board = Array.from(byUser, ([userId, v]) => ({
-          userId, name: v.name, score: scoreOf(v.picks),
+          userId,
+          name: v.name,
+          lockedAt: v.picks.lockedAt || null,
+          ...evalPicks(v.picks),
         }));
         picks.state = "done";
         render();
@@ -544,15 +632,21 @@
 
   // Build the leaderboard to display: real submissions if we have any, otherwise
   // the demo teammates so local dev still looks populated. Always includes "me".
-  function buildBoard(myScore) {
+  // `me` is a full entry {name, score, championRight, finalistsCorrect, lockedAt}.
+  function buildBoard(me) {
     const live = picks.board && picks.board.length ? picks.board.slice() : null;
     let board = live
-      ? live.map((p) => ({ name: p.name, score: p.score, me: p.userId === state.userId }))
+      ? live.map((p) => ({
+          name: p.name,
+          score: p.score,
+          championRight: p.championRight,
+          finalistsCorrect: p.finalistsCorrect,
+          lockedAt: p.lockedAt,
+          me: p.userId === state.userId,
+        }))
       : D.DEMO_TEAMMATES.map((p) => ({ name: p.name, score: p.score, me: false }));
-    if (!board.some((p) => p.me)) {
-      board.push({ name: state.displayName, score: myScore, me: true });
-    }
-    return board.sort((a, b) => b.score - a.score);
+    if (!board.some((p) => p.me)) board.push(Object.assign({ me: true }, me));
+    return board.sort(cmpBoard);
   }
 
   function renderDashboard() {
@@ -575,7 +669,7 @@
   }
 
   function renderEmptyDashboard(champion) {
-    const others = buildBoard(0).length;
+    const others = buildBoard({ name: state.displayName, score: 0 }).length;
     appEl.innerHTML = `
       ${quickLinksHTML()}
       <div class="card hero">
@@ -594,13 +688,21 @@
   }
 
   function renderScoredDashboard(champion) {
+    const actual = getActual();
     const result = E.score(
       state.groupPicks,
       state.thirdRanking,
       state.knockoutPicks,
-      getActual()
+      actual
     );
-    const board = buildBoard(result.total);
+    const af = actual.final || [];
+    const board = buildBoard({
+      name: state.displayName,
+      score: result.total,
+      championRight: !!(result.bracket.champion && result.bracket.champion === actual.champion),
+      finalistsCorrect: finalistsOf(result.bracket).filter((t) => af.includes(t)).length,
+      lockedAt: state.lockedAt,
+    });
     const myRank = board.findIndex((p) => p.me) + 1;
 
     // Show the top 6 only, so the card stays a fixed size as players are added.
@@ -713,6 +815,7 @@
   function lock() {
     if (!knockoutComplete()) return;
     state.locked = true;
+    state.lockedAt = new Date().toISOString();
     state.step = "dashboard";
     save();
     publishPicks();
@@ -729,7 +832,7 @@
       groupPicks: state.groupPicks,
       thirdRanking: state.thirdRanking,
       knockoutPicks: state.knockoutPicks,
-      lockedAt: new Date().toISOString(),
+      lockedAt: state.lockedAt || new Date().toISOString(),
     });
     const body = new URLSearchParams();
     body.append(cfg.entries.displayName, state.displayName || "");
@@ -741,6 +844,8 @@
   }
 
   function unlock() {
+    // Once kickoff passes, editing is closed for everyone, manual lock or not.
+    if (editingClosed()) return render();
     state.locked = false;
     state.step = "review";
     save();

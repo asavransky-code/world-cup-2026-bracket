@@ -84,6 +84,12 @@ window.WCB_DATA = (function () {
   // 8 of the 12 third-place teams advance.
   const THIRDS_ADVANCING = 8;
 
+  // Picks lock at the first match kickoff. Before this, brackets are editable;
+  // at/after it the extension forces read-only even if a player never locked.
+  // NOTE: confirm the exact kickoff time/zone. Placeholder = 2026 opener at
+  // Estadio Azteca, Mexico City (UTC-6), evening kickoff.
+  const LOCK_DATETIME = "2026-06-11T19:00:00-06:00";
+
   // Shared-layer endpoints. See ../ARTIFACTS.md for how these were created.
   const REMOTE = {
     // Picks WRITE: anonymous POST to the Google Form when a player locks.
@@ -206,6 +212,7 @@ window.WCB_DATA = (function () {
     GROUP_IDS,
     SCORING,
     THIRDS_ADVANCING,
+    LOCK_DATETIME,
     REMOTE,
     R32_TEMPLATE,
     ACTUAL,

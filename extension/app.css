@@ -167,6 +167,19 @@ h2 { font-size: 18px; margin: 0 0 4px; }
 /* Nav row */
 .navrow { display: flex; justify-content: space-between; margin-top: 24px; gap: 12px; }
 .progress-note { color: var(--muted); font-size: 13px; align-self: center; }
+.lock-countdown {
+  align-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.lock-countdown.locked { color: #f0b429; border-color: rgba(240, 180, 41, 0.4); }
 
 /* Leaderboard */
 .lb-row {
