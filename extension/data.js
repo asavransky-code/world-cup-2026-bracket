@@ -86,9 +86,9 @@ window.WCB_DATA = (function () {
 
   // Picks lock at the first match kickoff. Before this, brackets are editable;
   // at/after it the extension forces read-only even if a player never locked.
-  // NOTE: confirm the exact kickoff time/zone. Placeholder = 2026 opener at
-  // Estadio Azteca, Mexico City (UTC-6), evening kickoff.
-  const LOCK_DATETIME = "2026-06-11T19:00:00-06:00";
+  // 2026 opener: Mexico vs South Africa, Estadio Azteca, Mexico City, kickoff
+  // 1:00 PM local (UTC-6) on 2026-06-11 (= 2026-06-11T19:00:00Z).
+  const LOCK_DATETIME = "2026-06-11T13:00:00-06:00";
 
   // Shared-layer endpoints. See ../ARTIFACTS.md for how these were created.
   const REMOTE = {
