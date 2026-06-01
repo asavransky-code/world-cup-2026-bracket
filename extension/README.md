@@ -15,7 +15,7 @@ A no-build Firefox extension. Vanilla HTML/CSS/JS, data-driven engine.
 
 ## What works in Phase 0
 
-- Enter a display name (centered, responsive welcome screen, KITT chasing a soccer ball)
+- Enter a display name (centered, responsive welcome screen, Kit chasing a soccer ball)
 - Guided pick flow, in order, with a points hint on each step:
   1. **Group standings** — click teams 1st → 2nd → 3rd in each of 12 groups
   2. **Third-place order** — pick the 8 third-place teams you think advance, best first (stops at 8)
@@ -23,7 +23,7 @@ A no-build Firefox extension. Vanilla HTML/CSS/JS, data-driven engine.
   4. **Review & lock** — scoring legend + full bracket; locks the bracket (logs picks to console; Phase 1 posts to a Google Form)
 - **Dashboard** after locking:
   - **Quick links** — the user's pinned/most-visited sites (top 8, via the `topSites` permission), centered and floating under the header
-  - **Empty state** (before any results): KITT + soccer ball, your champion pick, how-points-work legend
+  - **Empty state** (before any results): Kit + soccer ball, your champion pick, how-points-work legend
   - **Scored state** (results in): points, rank, **top-6 leaderboard** (sized to match the score-breakdown card), score breakdown, your bracket
   - Top-bar **"Sim: pre-tournament / show results"** toggle to preview both states
 - Scoring uses the doubling back-load schedule (champion = 80) against **demo results**
@@ -56,7 +56,7 @@ build swaps in its own mascot art under the same filename. See the repo `LICENSE
 - `engine.js` — bracket resolution + scoring (pure functions, source-agnostic)
 - `app.js` — state (localStorage) + UI
 - `newtab.html` / `app.css` — shell + styles
-- `images/` — trophy icon, KITT mascot poses
+- `images/` — trophy icon, Kit mascot poses
 
 ## Status & what's next
 Phase 0 (the full client experience on placeholder data) is built. The remaining critical
