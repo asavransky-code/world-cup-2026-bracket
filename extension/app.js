@@ -150,7 +150,7 @@
     const h = Math.floor((s % 86400) / 3600);
     const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
-    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (d > 0) return `${d}d ${h}h ${m}m ${sec}s`;
     if (h > 0) return `${h}h ${m}m ${sec}s`;
     return `${m}m ${sec}s`;
   }
@@ -166,7 +166,7 @@
       if (!el) { clearInterval(lockTicker); lockTicker = null; return; }
       const rem = t - Date.now();
       if (rem <= 0) { clearInterval(lockTicker); lockTicker = null; render(); return; }
-      el.textContent = "Locks in " + fmtCountdown(rem);
+      el.textContent = "Your bracket locks in " + fmtCountdown(rem);
     }, 1000);
   }
 
@@ -183,35 +183,34 @@
     renderWizard();
   }
 
+  // The topbar now shows only the Firefox brand (static in newtab.html). The
+  // functional controls (countdown, Edit picks, Reset) moved into the page body
+  // alongside the section title — see controlsHTML().
   function renderTopbar() {
-    if (!state.displayName) {
-      actionsEl.innerHTML = "";
-      return;
-    }
-    const parts = [`<span class="progress-note">${esc(state.displayName)}</span>`];
+    actionsEl.innerHTML = "";
+  }
+
+  // Countdown + Edit picks + Reset, right-aligned. Rendered into the content
+  // (dashboard section row + wizard head), not the topbar.
+  function controlsHTML() {
+    if (!state.displayName) return "";
+    const parts = [];
     const open = !editingClosed();
     const t = lockMsAt();
-    // Countdown to lock, shown whenever editing is still open (wizard + dashboard).
     if (open && t !== null) {
       parts.push(
-        `<span class="lock-countdown" id="lock-countdown" title="Time left to edit your bracket">Locks in ${fmtCountdown(
+        `<span class="lock-countdown" id="lock-countdown" title="Time left to edit your bracket">Your bracket locks in ${fmtCountdown(
           t - Date.now()
         )}</span>`
       );
     }
     if (picksLocked()) {
-      parts.push(
-        `<button data-action="toggle-results" class="ghost">${
-          state.devHideResults ? "Sim: show results" : "Sim: pre-tournament"
-        }</button>`
-      );
       // "Edit picks" only while editing is open; after kickoff it's frozen.
       if (open) parts.push(`<button data-action="unlock">Edit picks</button>`);
       else parts.push(`<span class="lock-countdown locked" title="Editing closed at kickoff">🔒 Picks locked</span>`);
     }
     parts.push(`<button class="ghost danger" data-action="reset">Reset</button>`);
-    actionsEl.innerHTML = parts.join("");
-    startLockTicker();
+    return `<div class="header-controls">${parts.join("")}</div>`;
   }
 
   function renderName() {
@@ -220,7 +219,7 @@
       <div class="center-screen">
         <div class="card name-entry">
           <img class="kitt" src="images/firefox-mascot-ball-chase-rgb.svg" alt="" />
-          <h1>Welcome to the pool</h1>
+          <h1>Welcome to the Growth Team 2026 World Cup Pool!</h1>
           <p class="subtle">Enter the name your teammates will see on the leaderboard.</p>
           <input id="name-input" type="text" placeholder="Your name" maxlength="24" />
           <button class="primary block" data-action="set-name">Start picking</button>
@@ -292,7 +291,9 @@
     else if (state.step === "thirds") body = viewThirds();
     else if (state.step === "knockout") body = viewKnockout();
     else if (state.step === "review") body = viewReview();
-    appEl.innerHTML = stepPills() + body + navRow();
+    appEl.innerHTML =
+      `<div class="wizard-head">${stepPills()}${controlsHTML()}</div>` + body + navRow();
+    startLockTicker();
   }
 
   function hint(text) {
@@ -454,6 +455,15 @@
     return `<div class="quicklinks"><div class="ql-grid" id="ql-grid"></div></div>`;
   }
 
+  // Section heading above the pool content (mirrors New Tab's "Popular Today"),
+  // with the lock/edit/reset controls right-aligned on the same line.
+  function poolSectionTitleHTML() {
+    return `<div class="section-head">
+      <h2 class="section-title">Growth Team 2026 World Cup Pool</h2>
+      ${controlsHTML()}
+    </div>`;
+  }
+
   function loadTopSites() {
     const api = (window.browser || window.chrome || {}).topSites;
     const grid = document.getElementById("ql-grid");
@@ -491,7 +501,8 @@
             ? `<img class="ql-fav" src="${esc(s.favicon)}" alt="" />`
             : `<span class="ql-fav ql-letter">${esc((label[0] || "?").toUpperCase())}</span>`;
           return `<a class="ql-tile" href="${esc(s.url)}" title="${label}">
-              ${icon}<span class="ql-title">${label}</span></a>`;
+              <span class="ql-box">${icon}</span>
+              <span class="ql-title">${label}</span></a>`;
         })
         .join("");
     }
@@ -666,12 +677,14 @@
     }
     wireKitt();
     loadTopSites();
+    startLockTicker();
   }
 
   function renderEmptyDashboard(champion) {
     const others = buildBoard({ name: state.displayName, score: 0 }).length;
     appEl.innerHTML = `
       ${quickLinksHTML()}
+      ${poolSectionTitleHTML()}
       <div class="card hero">
         <img class="kitt" src="images/firefox-mascot-ball-chase-rgb.svg" alt="" />
         <div class="hero-text">
@@ -730,6 +743,7 @@
 
     appEl.innerHTML = `
       ${quickLinksHTML()}
+      ${poolSectionTitleHTML()}
       <div class="card">
         <div class="statgrid">
           <div class="stat"><div class="bignum">${result.total}</div><div class="label">points</div></div>
