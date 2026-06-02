@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "World Cup 2026 Bracket Pool",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Predict the FIFA World Cup 2026, score against results, and see your team's leaderboard on every new tab.",
   "browser_specific_settings": {
     "gecko": {

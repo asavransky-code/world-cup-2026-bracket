@@ -99,6 +99,13 @@
   function resultsAvailable() {
     // Dev toggle forces the pre-tournament empty state for previewing.
     if (state.devHideResults) return false;
+    // When a remote results feed is configured, only trust it once it has
+    // actually loaded. Until then (and if the fetch fails) show the
+    // pre-tournament view rather than briefly flashing the demo fallback's
+    // "complete" scored state. With no remote URL (pure local dev), fall
+    // through and let the demo D.ACTUAL drive the preview.
+    const hasRemote = !!(D.REMOTE && D.REMOTE.resultsJsonUrl);
+    if (hasRemote && results.state !== "done") return false;
     // Otherwise derive from the results feed status: scores exist once the
     // tournament is underway ("live") or finished ("complete").
     const status = getActual().status;
