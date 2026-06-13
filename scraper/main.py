@@ -6,7 +6,8 @@ Outputs results.json:
     "status": "pre" | "live" | "complete",
     "updated": "<ISO8601>",
     "source": "<wikipedia url>",
-    "groups": { "A": ["mx","kr","cz","za"], ... },  # only groups that are FINAL
+    "groups": { "A": ["mx","kr","cz","za"], ... },  # only groups that are FINAL (feeds scoring)
+    "groupStandings": { "A": {"order":[...], "final":false, "played":2}, ... },  # all groups w/ data (display only)
     "thirdQualifiers": ["cz","ci",...],              # 8 advancing thirds, when known
     "r16": [...], "qf": [...], "sf": [...], "final": [...],  # flag codes, reach-sets
     "champion": "ar" | null
@@ -120,7 +121,8 @@ def parse_groups(soup):
                 if code and code not in order:
                     order.append(code)
         final = len(order) == 4 and len(plds) >= 4 and all(p >= 3 for p in plds[:4])
-        groups[g] = {"order": order[:4], "final": final}
+        played = max(plds) if plds else 0  # matchday reached (for "X/3 played")
+        groups[g] = {"order": order[:4], "final": final, "played": played}
     return groups
 
 def teams_in_section(soup, heading_ids):
@@ -206,6 +208,14 @@ def build(page):
     champion = parse_champion(soup)
 
     final_groups = {g: v["order"] for g, v in groups.items() if v["final"]}
+    # Provisional standings: every group that has any parsed order, final or not.
+    # Display-only (the extension's compare view); never feeds scoring. Status is
+    # deliberately NOT advanced by provisional data — it stays "pre" until a group
+    # is actually final, so the main dashboard keeps its existing empty/scored gate.
+    group_standings = {
+        g: {"order": v["order"], "final": v["final"], "played": v.get("played", 0)}
+        for g, v in groups.items() if v["order"]
+    }
     any_ko = any(reach.get(k) for k in ("r16", "qf", "sf", "final"))
     if champion:
         status = "complete"
@@ -219,6 +229,7 @@ def build(page):
         "updated": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "source": f"https://en.wikipedia.org/wiki/{page}",
         "groups": final_groups,
+        "groupStandings": group_standings,
         "thirdQualifiers": thirds,
         "r16": reach.get("r16", []),
         "qf": reach.get("qf", []),
@@ -241,6 +252,7 @@ def main():
         print(json.dumps(result, indent=2))
         print("\nstatus:", result["status"])
         print("final groups:", len(result["groups"]),
+              "| provisional standings:", len(result["groupStandings"]),
               "| thirds:", len(result["thirdQualifiers"]),
               "| r16/qf/sf/final:",
               [len(result[k]) for k in ("r16", "qf", "sf", "final")],
