@@ -182,12 +182,25 @@ window.WCB_DATA = (function () {
   const ACTUAL_FINAL = ["ar", "es"];
   const ACTUAL_CHAMPION = "ar";
 
+  // Provisional/live group standings (compare view). Shape mirrors the scraper's
+  // results.json `groupStandings`: { g: { order:[codes], final:bool, played:int } }.
+  // `groups` (above) stays FINAL-ONLY because it feeds scoring; `groupStandings`
+  // carries every group with data (final or not) for display only. The demo
+  // represents a finished tournament, so every group is final, played: 3.
+  const ACTUAL_GROUP_STANDINGS = Object.fromEntries(
+    Object.entries(ACTUAL_GROUPS).map(([g, order]) => [
+      g,
+      { order, final: true, played: 3 },
+    ])
+  );
+
   const ACTUAL = {
     // status mirrors the scraper's results.json: pre | live | complete. The demo
     // represents a finished tournament, so "complete". The live provider replaces
     // this whole object with the fetched results.json when resultsJsonUrl is set.
     status: "complete",
     groups: ACTUAL_GROUPS,
+    groupStandings: ACTUAL_GROUP_STANDINGS,
     thirdQualifiers: ACTUAL_THIRD_QUALIFIERS,
     r16: ACTUAL_R16,
     qf: ACTUAL_QF,
@@ -195,6 +208,35 @@ window.WCB_DATA = (function () {
     final: ACTUAL_FINAL,
     champion: ACTUAL_CHAMPION,
   };
+
+  // ---- Static pool roster (the 10 players; picks are locked) ----
+  // Identity is fixed: when an install has no local picks (fresh install or wiped
+  // storage) and kickoff has passed, the extension recovers identity from this
+  // list (the "claim" screen) instead of generating a new userId and re-submitting
+  // — which is exactly how "Umit" ended up with two userIds before this version.
+  // `userId` is the canonical bracket (used for the leaderboard); `claims` lists the
+  // dated options shown on the claim screen when a player submitted more than once
+  // under different ids, so they can pick the right one. userIds verified against the
+  // responses Sheet (2026-06-13).
+  const ROSTER = [
+    { name: "Alejandro", userId: "69134b3f-9a7f-4827-8ed3-a923580b7ca7" },
+    { name: "Alex", userId: "0f4f72e4-fec8-45a1-b41c-e0779e13df26" },
+    { name: "Dr. Ubino", userId: "22fac201-5261-4470-9007-5be9bf392617" },
+    { name: "Farhan", userId: "2528f440-10a7-473a-aca2-9c775beda185" },
+    { name: "Jeff P", userId: "3bea7f41-f5cb-49d6-9854-b2164c92f4b7" },
+    { name: "Ray", userId: "e169b20d-dbf3-4e0b-96dc-e04f91348587" },
+    { name: "SuAnn", userId: "13fcad41-9e3e-45dd-bef3-12e517e5864c" },
+    {
+      name: "Umit",
+      userId: "b1094150-d40d-4b1f-8c97-d7adbea76bca",
+      claims: [
+        { userId: "b1094150-d40d-4b1f-8c97-d7adbea76bca", note: "submitted Jun 11" },
+        { userId: "dc843865-2a69-4962-9600-01b396c483d6", note: "submitted Jun 3" },
+      ],
+    },
+    { name: "Yazan", userId: "97b95046-d0d1-4302-b5f0-bcc5fbff983f" },
+    { name: "hanna", userId: "5162da7f-d303-4283-a67d-29852836eff5" },
+  ];
 
   // Demo teammates for the leaderboard (Phase 1: from the Picks Sheet CSV).
   const DEMO_TEAMMATES = [
@@ -216,6 +258,7 @@ window.WCB_DATA = (function () {
     REMOTE,
     R32_TEMPLATE,
     ACTUAL,
+    ROSTER,
     DEMO_TEAMMATES,
     byCode,
     groupTeams,

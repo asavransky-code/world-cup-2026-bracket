@@ -46,6 +46,27 @@
   }
   let state = load();
 
+  // In-memory navigation (NOT persisted): every new tab is a fresh page load, so
+  // this resets to the dashboard each time — the dashboard stays the default view.
+  let view = { name: "dashboard", playerId: null };
+
+  // ---------- roster (static pool of known players) ----------
+  // Identity is hardcoded in data.js so a reinstall recovers via the claim screen
+  // instead of minting a new userId. KNOWN_UIDS = every canonical + claim userId,
+  // used to collapse duplicates (one "Umit") and hide orphan/unknown rows.
+  const ROSTER = D.ROSTER || [];
+  const KNOWN_UIDS = new Set();
+  ROSTER.forEach((r) => {
+    KNOWN_UIDS.add(r.userId);
+    (r.claims || []).forEach((c) => KNOWN_UIDS.add(c.userId));
+  });
+  function rosterUidsOf(entry) {
+    return [entry.userId, ...((entry.claims || []).map((c) => c.userId))];
+  }
+  function rosterEntryForUid(uid) {
+    return ROSTER.find((r) => rosterUidsOf(r).includes(uid)) || null;
+  }
+
   // ---------- helpers ----------
   function esc(s) {
     return String(s).replace(/[&<>"']/g, (c) =>
@@ -184,10 +205,22 @@
   function render() {
     document.body.classList.toggle("on-name", !state.displayName);
     if (picksLocked()) state.step = "dashboard";
-    if (!state.displayName) return renderName();
-    if (state.step === "dashboard") return renderDashboard();
+    // No identity yet: after kickoff there's nothing to fill out, so recover via
+    // the claim screen (pick who you are) rather than the first-run pick flow —
+    // this is what prevents a wiped install from re-submitting under a new userId.
+    if (!state.displayName) return editingClosed() ? renderClaim() : renderName();
+    if (state.step === "dashboard") {
+      if (view.name === "player") return renderPlayerDetail(view.playerId);
+      return renderDashboard();
+    }
     if (!STEPS.includes(state.step)) state.step = "groups";
     renderWizard();
+  }
+
+  function setView(name, playerId) {
+    view = { name, playerId: playerId || null };
+    window.scrollTo(0, 0);
+    render();
   }
 
   // The topbar now shows only the Firefox brand (static in newtab.html). The
@@ -238,6 +271,35 @@
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") setName();
     });
+  }
+
+  // Recovery / identity screen, shown after kickoff when there's no local identity
+  // (fresh install or wiped storage). Tapping a name adopts that player's existing
+  // userId and bracket — no new submission, no duplicate player.
+  function renderClaim() {
+    renderTopbar();
+    loadPicksOnce(); // so the chosen bracket can hydrate once the CSV lands
+    const buttons = ROSTER.map((r) => {
+      const opts = r.claims && r.claims.length > 1 ? r.claims : [{ userId: r.userId }];
+      return opts
+        .map((o) => {
+          const note = o.note ? `<span class="claim-note">${esc(o.note)}</span>` : "";
+          return `<button class="claim-btn" data-action="claim" data-uid="${o.userId}" data-name="${esc(
+            r.name
+          )}"><span class="claim-name">${esc(r.name)}</span>${note}</button>`;
+        })
+        .join("");
+    }).join("");
+    appEl.innerHTML = `
+      <div class="center-screen">
+        <div class="card name-entry claim">
+          <img class="kitt" src="images/firefox-mascot-ball-chase-rgb.svg" alt="" />
+          <h1>Welcome back to the Growth Team World Cup Pool</h1>
+          <p class="subtle">Picks are locked, so there's nothing to fill out — just tap your name to load your bracket and the live pool. Tapping the wrong one won't submit anything.</p>
+          <div class="claim-grid">${buttons}</div>
+        </div>
+      </div>`;
+    wireKitt();
   }
 
   function wireKitt() {
@@ -383,6 +445,20 @@
       state.thirdRanking,
       state.knockoutPicks
     );
+    return bracketLayoutHTML(rounds, champion, readOnly);
+  }
+
+  // Render any bracket (from given picks) read-only — used by the player-compare view.
+  function bracketHTMLFrom(groupPicks, thirdRanking, knockoutPicks) {
+    const { rounds, champion } = E.buildBracket(
+      groupPicks || {},
+      thirdRanking || [],
+      knockoutPicks || {}
+    );
+    return bracketLayoutHTML(rounds, champion, true);
+  }
+
+  function bracketLayoutHTML(rounds, champion, readOnly) {
     const byId = {};
     rounds.forEach((r) => (byId[r.id] = r.matches));
     const r32 = byId.r32,
@@ -467,7 +543,9 @@
   function poolSectionTitleHTML() {
     return `<div class="section-head">
       <h2 class="section-title">Growth Team 2026 World Cup Pool</h2>
-      ${controlsHTML()}
+      <div class="section-actions">
+        ${controlsHTML()}
+      </div>
     </div>`;
   }
 
@@ -640,19 +718,67 @@
           userId,
           name: v.name,
           lockedAt: v.picks.lockedAt || null,
+          raw: v.picks, // kept so the compare view + identity recovery can read picks
           ...evalPicks(v.picks),
         }));
         picks.state = "done";
+        hydrateFromBoardIfNeeded();
         render();
       })
       .catch(() => { picks.state = "failed"; });
   }
 
-  // Build the leaderboard to display: real submissions if we have any, otherwise
-  // the demo teammates so local dev still looks populated. Always includes "me".
-  // `me` is a full entry {name, score, championRight, finalistsCorrect, lockedAt}.
+  // Collapse the raw CSV rows to the static roster: one entry per player (prefer
+  // the canonical userId, else the most recent of their claim ids), roster name,
+  // orphan/unknown userIds dropped. This is what de-duplicates "Umit" (two ids)
+  // and keeps the board to the known players. Returns null if no live rows yet.
+  function reconciledRows() {
+    if (!(picks.board && picks.board.length)) return null;
+    const byUid = new Map(picks.board.map((p) => [p.userId, p]));
+    const out = [];
+    ROSTER.forEach((entry) => {
+      const uids = rosterUidsOf(entry);
+      const found = uids.map((u) => byUid.get(u)).filter(Boolean);
+      if (!found.length) return; // this player has no submission in the Sheet
+      const row =
+        byUid.get(entry.userId) ||
+        found.slice().sort((a, b) => lockMsOf(b) - lockMsOf(a))[0];
+      out.push(
+        Object.assign({}, row, {
+          userId: entry.userId,
+          name: entry.name,
+          me: uids.includes(state.userId),
+        })
+      );
+    });
+    return out;
+  }
+
+  // If we just recovered identity (claim screen) and have no local picks, pull the
+  // player's locked bracket out of the board so their dashboard/compare render. Never
+  // clobbers a non-empty local bracket (a normal user with intact storage).
+  function hydrateFromBoardIfNeeded() {
+    if (!(picks.board && picks.board.length)) return;
+    const hasLocal = state.groupPicks && Object.keys(state.groupPicks).length > 0;
+    if (hasLocal) return;
+    const entry = rosterEntryForUid(state.userId);
+    const uids = entry ? rosterUidsOf(entry) : [state.userId];
+    const row = picks.board.find((p) => uids.includes(p.userId) && p.raw);
+    if (!row) return;
+    state.groupPicks = row.raw.groupPicks || {};
+    state.thirdRanking = row.raw.thirdRanking || [];
+    state.knockoutPicks = row.raw.knockoutPicks || {};
+    state.lockedAt = row.raw.lockedAt || state.lockedAt;
+    state.locked = true;
+    if (entry) state.userId = entry.userId; // normalize to the canonical id
+    save();
+  }
+
+  // Build the leaderboard to display: reconciled roster rows if we have live data,
+  // otherwise the demo teammates so local dev still looks populated. Always includes
+  // "me". `me` is a full entry {name, score, championRight, finalistsCorrect, lockedAt}.
   function buildBoard(me) {
-    const live = picks.board && picks.board.length ? picks.board.slice() : null;
+    const live = reconciledRows();
     let board = live
       ? live.map((p) => ({
           name: p.name,
@@ -660,7 +786,7 @@
           championRight: p.championRight,
           finalistsCorrect: p.finalistsCorrect,
           lockedAt: p.lockedAt,
-          me: p.userId === state.userId,
+          me: p.me,
         }))
       : D.DEMO_TEAMMATES.map((p) => ({ name: p.name, score: p.score, me: false }));
     if (!board.some((p) => p.me)) board.push(Object.assign({ me: true }, me));
@@ -671,43 +797,48 @@
     renderTopbar();
     loadResultsOnce();
     loadPicksOnce();
+    hydrateFromBoardIfNeeded(); // covers the case where the board was already cached
     const { champion } = E.buildBracket(
       state.groupPicks,
       state.thirdRanking,
       state.knockoutPicks
     );
-
-    if (!resultsAvailable()) {
-      renderEmptyDashboard(champion);
-    } else {
-      renderScoredDashboard(champion);
-    }
+    // Unified home: your status (left) + the full pool leaderboard (right).
+    // Both cards adapt to pre-tournament vs. scored; the leaderboard is the only
+    // path to a player's bracket (tap "View"), so it always lists all 10.
+    appEl.innerHTML = `
+      ${quickLinksHTML()}
+      ${poolSectionTitleHTML()}
+      <div class="two-col">
+        ${statusCardHTML(champion)}
+        ${leaderboardCardHTML()}
+      </div>
+      ${scoringLegendHTML()}`;
     wireKitt();
     loadTopSites();
     startLockTicker();
   }
 
-  function renderEmptyDashboard(champion) {
-    const others = buildBoard({ name: state.displayName, score: 0 }).length;
-    appEl.innerHTML = `
-      ${quickLinksHTML()}
-      ${poolSectionTitleHTML()}
-      <div class="card hero">
+  // Left card: the player's own status. Pre-tournament it's the "you're locked in"
+  // hero (champion pick + how many have locked in); once scoring is live it shows
+  // points / rank / champion. The full breakdown + bracket live behind the player's
+  // own "View" on the leaderboard, same path as viewing anyone else.
+  function statusCardHTML(champion) {
+    const playerCount = (reconciledRows() || ROSTER).length;
+    if (!resultsAvailable()) {
+      return `<div class="card hero">
         <img class="kitt" src="images/firefox-mascot-ball-chase-rgb.svg" alt="" />
         <div class="hero-text">
           <h1>You're locked in, ${esc(state.displayName)}</h1>
-          <p class="subtle">The tournament hasn't kicked off yet. Scores start landing once teams finish the group stage, then this board comes alive after each round.</p>
+          <p class="subtle">The group stage is underway. Nothing counts toward points until a group finishes, so the board sits at zero for now. Track how your bracket stacks up against the pool on the right — tap any name to see their full bracket and how their picks line up with the live group standings.</p>
           <div class="hero-champ">
             <span class="label">Your champion pick</span>
             <div class="chip picked champ">${champion ? teamLabel(champion) : "—"}</div>
           </div>
-          <p class="subtle">${others} players locked in so far.</p>
+          <p class="subtle">${playerCount} players locked in.</p>
         </div>
-      </div>
-      ${scoringLegendHTML()}`;
-  }
-
-  function renderScoredDashboard(champion) {
+      </div>`;
+    }
     const actual = getActual();
     const result = E.score(
       state.groupPicks,
@@ -724,20 +855,142 @@
       lockedAt: state.lockedAt,
     });
     const myRank = board.findIndex((p) => p.me) + 1;
+    return `<div class="card status-card">
+      <h2>You're locked in, ${esc(state.displayName)}</h2>
+      <div class="statgrid">
+        <div class="stat"><div class="bignum">${result.total}</div><div class="label">points</div></div>
+        <div class="stat"><div class="bignum">#${myRank}</div><div class="label">of ${board.length}</div></div>
+        <div class="stat"><div class="label">your champion</div>
+          <div class="chip picked champ" style="justify-content:center;margin-top:8px">${
+            champion ? teamLabel(champion) : "—"
+          }</div></div>
+      </div>
+      <p class="subtle" style="margin-top:16px">Tap your name on the leaderboard for your full score breakdown and bracket.</p>
+    </div>`;
+  }
 
-    // Show the top 6 only, so the card stays a fixed size as players are added.
-    const lbRows = board
-      .slice(0, 6)
+  // Right card: the whole pool, every player a tap-through to their bracket. Before
+  // scores exist it's a neutral list (no ranks, 0 pts for everyone); once results
+  // are live it sorts by score and numbers the standings. Reuses the roster-row UI.
+  function leaderboardCardHTML() {
+    const showScores = resultsAvailable();
+    const live = reconciledRows();
+    // Live reconciled rows when the Sheet has loaded; otherwise the static roster
+    // so all 10 still show (scores fill in on the re-render once picks load).
+    const rows = (
+      live ||
+      ROSTER.map((r) => ({
+        userId: r.userId,
+        name: r.name,
+        score: 0,
+        me: rosterUidsOf(r).includes(state.userId),
+      }))
+    ).slice();
+    rows.sort(showScores ? cmpBoard : (a, b) => a.name.localeCompare(b.name));
+    let list = rows
       .map(
         (p, i) => `
-        <div class="lb-row ${p.me ? "me" : ""}">
-          <div class="lb-rank">${i + 1}</div>
-          <div class="lb-name">${esc(p.name)}${p.me ? " (you)" : ""}</div>
-          <div class="lb-score">${p.score}</div>
-        </div>`
+        <button class="roster-row ${p.me ? "me" : ""}" data-action="view-player" data-uid="${p.userId}">
+          <span class="roster-rank">${showScores ? i + 1 : "•"}</span>
+          <span class="roster-name">${esc(p.name)}${p.me ? " (you)" : ""}</span>
+          <span class="roster-score">${showScores ? p.score : "0 pts"}</span>
+          <span class="roster-go">View ›</span>
+        </button>`
       )
       .join("");
+    // Any roster player with no submission in the Sheet: degrade visibly rather
+    // than silently dropping them (shouldn't happen for the locked pool).
+    if (live) {
+      const present = new Set(rows.map((p) => p.name));
+      ROSTER.filter((r) => !present.has(r.name)).forEach((r) => {
+        list += `<div class="roster-row missing"><span class="roster-rank">•</span><span class="roster-name">${esc(
+          r.name
+        )}</span><span class="roster-score">no picks found</span></div>`;
+      });
+    }
+    const note = showScores
+      ? "Standings so far. Tap anyone for their full bracket."
+      : "No scores yet — they start once a group is final. Group standings aren't final until each group plays its three matches, so nothing here counts toward points yet.";
+    return `<div class="card lb-card">
+      <h2>Leaderboard</h2>
+      <p class="subtle lb-note">${note}</p>
+      <div class="roster-list">${list}</div>
+    </div>`;
+  }
 
+  // ---------- player compare view ----------
+  // Read a player's raw picks: from the Sheet board if present, else local state
+  // (covers "me" before the CSV loads).
+  function rawPicksForUid(uid) {
+    const entry = rosterEntryForUid(uid);
+    const uids = entry ? rosterUidsOf(entry) : [uid];
+    if (picks.board) {
+      const row = picks.board.find((p) => uids.includes(p.userId) && p.raw);
+      if (row) return row.raw;
+    }
+    if (uids.includes(state.userId)) {
+      return {
+        groupPicks: state.groupPicks,
+        thirdRanking: state.thirdRanking,
+        knockoutPicks: state.knockoutPicks,
+        lockedAt: state.lockedAt,
+      };
+    }
+    return null;
+  }
+
+  // One group's predicted finishing order vs. the live standings, with markers.
+  function groupCompareHTML(g, pred, st) {
+    const order = st && st.order ? st.order : [];
+    const final = !!(st && st.final);
+    const played = st ? st.played || 0 : 0;
+    const tag = !st
+      ? `<span class="gtag none">not started</span>`
+      : final
+      ? `<span class="gtag final">final</span>`
+      : `<span class="gtag prov">not final · ${played}/3 played</span>`;
+    const rows = [0, 1, 2]
+      .map((pos) => {
+        const p = pred[pos];
+        const a = order[pos];
+        let mark = "";
+        if (p && final) mark = p === a ? `<span class="mk ok">✓</span>` : `<span class="mk no">✗</span>`;
+        else if (p && a) mark = p === a ? `<span class="mk prov">•</span>` : `<span class="mk dot">·</span>`;
+        const predCell = p ? teamLabel(p) : `<span class="subtle">—</span>`;
+        const actCell = a ? teamLabel(a) : `<span class="subtle">—</span>`;
+        return `<tr><td class="pos">${pos + 1}</td><td>${predCell}</td><td class="mkcell">${mark}</td><td>${actCell}</td></tr>`;
+      })
+      .join("");
+    return `<div class="gcmp"><div class="gcmp-head">GROUP ${g} ${tag}</div>
+      <table class="gcmp-tbl"><thead><tr><th></th><th>Pick</th><th></th><th>Live</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function renderPlayerDetail(uid) {
+    renderTopbar();
+    loadResultsOnce();
+    loadPicksOnce();
+    const entry = rosterEntryForUid(uid);
+    const name = entry ? entry.name : "Player";
+    const raw = rawPicksForUid(uid);
+    if (!raw) {
+      appEl.innerHTML = `
+        ${quickLinksHTML()}
+        <div class="section-head">
+          <h2 class="section-title">${esc(name)}</h2>
+          <div class="section-actions"><button data-action="view-dashboard">‹ Back to dashboard</button></div>
+        </div>
+        <div class="card"><p class="subtle">Loading this bracket…</p></div>`;
+      wireKitt();
+      loadTopSites();
+      return;
+    }
+    const actual = getActual();
+    const result = E.score(
+      raw.groupPicks || {},
+      raw.thirdRanking || [],
+      raw.knockoutPicks || {},
+      actual
+    );
     const lines = result.lines
       .map(
         (l) => `
@@ -747,26 +1000,35 @@
         </div>`
       )
       .join("");
-
+    const standings = actual.groupStandings || {};
+    const groupCmp = D.GROUP_IDS.map((g) =>
+      groupCompareHTML(g, raw.groupPicks ? raw.groupPicks[g] || [] : [], standings[g])
+    ).join("");
+    const koStarted = (actual.r16 || []).length > 0;
+    const koNote = koStarted
+      ? ""
+      : `<p class="subtle">Knockout results start after the group stage. For now this is ${esc(
+          name
+        )}'s predicted bracket.</p>`;
     appEl.innerHTML = `
       ${quickLinksHTML()}
-      ${poolSectionTitleHTML()}
-      <div class="card">
-        <div class="statgrid">
-          <div class="stat"><div class="bignum">${result.total}</div><div class="label">points</div></div>
-          <div class="stat"><div class="bignum">#${myRank}</div><div class="label">of ${board.length}</div></div>
-          <div class="stat"><div class="label">your champion</div>
-            <div class="chip picked champ" style="justify-content:center;margin-top:8px">${
-              champion ? teamLabel(champion) : "—"
-            }</div></div>
-        </div>
+      <div class="section-head">
+        <h2 class="section-title">${esc(name)}'s bracket</h2>
+        <div class="section-actions"><button data-action="view-dashboard">‹ Back to dashboard</button></div>
       </div>
+      <p class="subtle">Group standings below are live and <strong>not final</strong> until each group plays its three matches. Points are awarded only once a group is final, so these numbers can still change.</p>
       <div class="two-col">
-        <div class="card"><h2>Leaderboard</h2>${lbRows}</div>
-        <div class="card"><h2>Your score breakdown</h2>${lines}
+        <div class="card"><h2>Score so far</h2>${lines}
           <div class="score-total"><div>Total</div><div>${result.total}</div></div></div>
+        <div class="card"><h2>Group picks vs. live standings</h2><div class="group-cmp">${groupCmp}</div></div>
       </div>
-      <div class="card"><h2>Your bracket</h2>${bracketHTML(true)}</div>`;
+      <div class="card"><h2>Full bracket</h2>${koNote}${bracketHTMLFrom(
+      raw.groupPicks,
+      raw.thirdRanking,
+      raw.knockoutPicks
+    )}</div>`;
+    wireKitt();
+    loadTopSites();
   }
 
   // ---------- actions ----------
@@ -777,6 +1039,19 @@
     state.displayName = v;
     state.step = "groups";
     save();
+    render();
+  }
+
+  // Adopt an existing player's identity (claim screen). No new submission: we take
+  // their userId so the leaderboard attributes the right row, and their bracket
+  // hydrates from the Sheet once it loads.
+  function claim(uid, name) {
+    state.userId = uid;
+    state.displayName = name;
+    state.locked = true;
+    view = { name: "dashboard", playerId: null };
+    save();
+    hydrateFromBoardIfNeeded(); // in case the board was already loaded
     render();
   }
 
@@ -896,6 +1171,9 @@
     if (!el) return;
     const a = el.dataset.action;
     if (a === "set-name") setName();
+    else if (a === "claim") claim(el.dataset.uid, el.dataset.name);
+    else if (a === "view-player") setView("player", el.dataset.uid);
+    else if (a === "view-dashboard") setView("dashboard");
     else if (a === "group-pick") groupPick(el.dataset.group, el.dataset.code);
     else if (a === "third-pick") thirdPick(el.dataset.code);
     else if (a === "ko-pick") koPick(el.dataset.match, el.dataset.code);

@@ -35,10 +35,10 @@ A no-build Firefox extension. Vanilla HTML/CSS/JS, data-driven engine.
 https://github.com/twbs/icons), recolored gold. When distributing, include the
 Bootstrap Icons MIT license text.
 
-## Mascot
-`images/firefox-mascot-ball-chase-rgb.svg` (used on the welcome + empty states) is an
-original **CC0 soccer-ball** placeholder in this public repo. The privately distributed
-build swaps in its own mascot art under the same filename. See the repo `LICENSE`.
+## Kit mascot
+Bundled in `images/`: `firefox-mascot-ball-chase-rgb.svg` (used on welcome + empty state) —
+its stock ball was edited into a **soccer ball**. The `-button-` and `-prop-heart-` poses
+are also bundled and available to swap in.
 
 ## Known Phase 0 shortcuts (see REQUIREMENTS.md)
 

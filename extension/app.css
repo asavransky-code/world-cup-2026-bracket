@@ -185,17 +185,8 @@ h2 { font-size: 18px; margin: 0 0 4px; }
 }
 .lock-countdown.locked { color: #f0b429; border-color: rgba(240, 180, 41, 0.4); }
 
-/* Leaderboard */
-.lb-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 14px; border-bottom: 1px solid var(--line);
-}
-.lb-row:last-child { border-bottom: none; }
-.lb-row.me { background: #112430; border-radius: 8px; }
-.lb-rank { width: 28px; font-weight: 700; color: var(--muted); }
-.lb-name { flex: 1; font-weight: 600; }
-.lb-score { font-weight: 700; font-size: 17px; }
-.lb-row.me .lb-rank { color: var(--gold); }
+/* Leaderboard (the pool roster, rendered with .roster-row — see "Roster directory") */
+.lb-note { margin: -2px 0 8px; }
 
 /* Score breakdown */
 .score-line { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); }
@@ -281,8 +272,60 @@ img.kitt { width: 150px; max-width: 60%; height: auto; display: block; margin: 0
 .hero-champ .label { display: block; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
 .hero-champ .chip { max-width: 260px; }
 
+/* Section actions: nav + controls on the right of a section head */
+.section-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Claim / identity-recovery screen */
+.name-entry.claim { max-width: 520px; }
+.claim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.claim-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 12px 14px; text-align: left;
+}
+.claim-name { font-weight: 600; }
+.claim-note { font-size: 12px; color: var(--muted); }
+
+/* Roster directory */
+.roster-list { padding: 6px 8px; }
+.roster-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 11px 10px; border: none; border-bottom: 1px solid var(--line);
+  background: transparent; border-radius: 0; text-align: left; font-size: 15px;
+}
+.roster-row:last-child { border-bottom: none; }
+.roster-row:hover { background: #50505c; border-radius: 8px; }
+.roster-row.me { background: #112430; border-radius: 8px; }
+.roster-row.missing { color: var(--muted); cursor: default; }
+.roster-rank { width: 26px; font-weight: 700; color: var(--muted); }
+.roster-name { flex: 1; font-weight: 600; }
+.roster-score { color: var(--muted); font-weight: 700; }
+.roster-go { color: var(--accent); font-size: 13px; }
+.roster-row.me .roster-rank { color: var(--gold); }
+
+/* Group picks vs. live standings comparison */
+.group-cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.gcmp { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel-2); }
+.gcmp-head { font-size: 12px; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.gtag { font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); letter-spacing: 0.3px; }
+.gtag.final { color: var(--accent-2); border-color: #1f4a32; }
+.gtag.prov { color: var(--gold); border-color: #5a4a1a; }
+.gtag.none { color: var(--muted); }
+.gcmp-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gcmp-tbl th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11px; padding-bottom: 4px; }
+.gcmp-tbl td { padding: 3px 4px; vertical-align: middle; }
+.gcmp-tbl td.pos { width: 16px; color: var(--muted); font-weight: 700; }
+.gcmp-tbl td.mkcell { width: 18px; text-align: center; }
+.gcmp-tbl .flag { width: 18px; height: 12px; }
+.gcmp-tbl .name { font-size: 12.5px; }
+.mk.ok { color: var(--accent-2); font-weight: 700; }
+.mk.no { color: var(--danger); }
+.mk.prov { color: var(--gold); }
+.mk.dot { color: var(--muted); }
+
 /* Responsive */
 @media (max-width: 860px) {
+  .group-cmp { grid-template-columns: 1fr; }
+  .claim-grid { grid-template-columns: 1fr; }
   .two-col { grid-template-columns: 1fr; }
   .statgrid { grid-template-columns: 1fr; gap: 18px; }
   .hero { flex-direction: column; text-align: center; }
