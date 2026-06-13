@@ -1,8 +1,130 @@
 {
   "status": "pre",
-  "updated": "2026-06-13T13:52:59.076794+00:00",
+  "updated": "2026-06-13T17:28:49.585307+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {},
+  "groupStandings": {
+    "A": {
+      "order": [
+        "mx",
+        "kr",
+        "cz",
+        "za"
+      ],
+      "final": false,
+      "played": 1
+    },
+    "B": {
+      "order": [
+        "ca",
+        "ba",
+        "ch",
+        "qa"
+      ],
+      "final": false,
+      "played": 1
+    },
+    "C": {
+      "order": [
+        "br",
+        "ma",
+        "ht",
+        "gb-sct"
+      ],
+      "final": false,
+      "played": 0
+    },
+    "D": {
+      "order": [
+        "us",
+        "tr",
+        "au",
+        "py"
+      ],
+      "final": false,
+      "played": 1
+    },
+    "E": {
+      "order": [
+        "de",
+        "cw",
+        "ci",
+        "ec"
+      ],
+      "final": false,
+      "played": 0
+    },
+    "F": {
+      "order": [
+        "nl",
+        "jp",
+        "se",
+        "tn"
+      ],
+      "final": false,
+      "played": 0
+    },
+    "G": {
+      "order": [
+        "be",
+        "eg",
+        "ir",
+        "nz"
+      ],
+      "final": false,
+      "played": 0
+    },
+    "H": {
+      "order": [
+        "es",
+        "cv",
+        "sa",
+        "uy"
+      ],
+      "final": false,
+      "played": 0
+    },
+    "I": {
+      "order": [
+        "fr",
+        "sn",
+        "iq",
+        "no"
+      ],
+      "final": false,
+      "played": 0
+    },
+    "J": {
+      "order": [
+        "ar",
+        "dz",
+        "at",
+        "jo"
+      ],
+      "final": false,
+      "played": 0
+    },
+    "K": {
+      "order": [
+        "pt",
+        "cd",
+        "uz",
+        "co"
+      ],
+      "final": false,
+      "played": 0
+    },
+    "L": {
+      "order": [
+        "gb-eng",
+        "hr",
+        "gh",
+        "pa"
+      ],
+      "final": false,
+      "played": 0
+    }
+  },
   "thirdQualifiers": [],
   "r16": [],
   "qf": [],
