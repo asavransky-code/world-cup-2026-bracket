@@ -4,7 +4,7 @@ name: Update results.json
 # it to this repo. The extension reads the published file from raw.githubusercontent.
 on:
   schedule:
-    - cron: "0 */6 * * *"   # every 6 hours; bump frequency during the tournament if desired
+    - cron: "0 * * * *"   # hourly during the tournament (was every 6h)
   workflow_dispatch:
 
 permissions:
