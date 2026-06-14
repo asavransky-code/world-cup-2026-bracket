@@ -1,6 +1,6 @@
 {
   "status": "pre",
-  "updated": "2026-06-14T20:16:43.624078+00:00",
+  "updated": "2026-06-14T22:08:31.992170+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {},
   "groupStandings": {
@@ -62,7 +62,7 @@
         "tn"
       ],
       "final": false,
-      "played": 0
+      "played": 1
     },
     "G": {
       "order": [
