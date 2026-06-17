@@ -1,6 +1,6 @@
 {
   "status": "pre",
-  "updated": "2026-06-17T21:05:22.159903+00:00",
+  "updated": "2026-06-17T23:23:29.884286+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {},
   "groupStandings": {
@@ -117,12 +117,12 @@
     "L": {
       "order": [
         "gb-eng",
-        "hr",
+        "pa",
         "gh",
-        "pa"
+        "hr"
       ],
       "final": false,
-      "played": 0
+      "played": 1
     }
   },
   "thirdQualifiers": [],
