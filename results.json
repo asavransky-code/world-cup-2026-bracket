@@ -1,6 +1,6 @@
 {
   "status": "pre",
-  "updated": "2026-06-23T20:02:44.052200+00:00",
+  "updated": "2026-06-23T22:11:46.752376+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {},
   "groupStandings": {
@@ -122,7 +122,7 @@
         "hr"
       ],
       "final": false,
-      "played": 1
+      "played": 2
     }
   },
   "thirdQualifiers": [],
