@@ -1,6 +1,6 @@
 {
   "status": "pre",
-  "updated": "2026-06-23T23:56:06.084246+00:00",
+  "updated": "2026-06-24T03:41:54.023562+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {},
   "groupStandings": {
@@ -118,8 +118,8 @@
       "order": [
         "gb-eng",
         "gh",
-        "pa",
-        "hr"
+        "hr",
+        "pa"
       ],
       "final": false,
       "played": 2
