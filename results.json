@@ -1,8 +1,14 @@
 {
   "status": "live",
-  "updated": "2026-06-25T00:11:47.842700+00:00",
+  "updated": "2026-06-25T05:04:32.899603+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {
+    "A": [
+      "mx",
+      "za",
+      "kr",
+      "cz"
+    ],
     "B": [
       "ch",
       "ca",
@@ -20,12 +26,12 @@
     "A": {
       "order": [
         "mx",
+        "za",
         "kr",
-        "cz",
-        "za"
+        "cz"
       ],
-      "final": false,
-      "played": 2
+      "final": true,
+      "played": 3
     },
     "B": {
       "order": [
