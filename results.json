@@ -1,6 +1,6 @@
 {
   "status": "live",
-  "updated": "2026-06-26T23:04:53.507252+00:00",
+  "updated": "2026-06-27T02:58:04.084150+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {
     "A": [
@@ -38,6 +38,12 @@
       "jp",
       "se",
       "tn"
+    ],
+    "H": [
+      "es",
+      "cv",
+      "uy",
+      "sa"
     ],
     "I": [
       "fr",
@@ -120,12 +126,12 @@
     "H": {
       "order": [
         "es",
-        "uy",
         "cv",
+        "uy",
         "sa"
       ],
-      "final": false,
-      "played": 2
+      "final": true,
+      "played": 3
     },
     "I": {
       "order": [
@@ -169,7 +175,9 @@
     }
   },
   "thirdQualifiers": [
-    "ba"
+    "ba",
+    "py",
+    "se"
   ],
   "r16": [],
   "qf": [],
