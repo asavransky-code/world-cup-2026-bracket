@@ -1,6 +1,6 @@
 {
   "status": "live",
-  "updated": "2026-06-28T20:12:49.414015+00:00",
+  "updated": "2026-06-28T22:01:03.295542+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {
     "A": [
@@ -208,7 +208,9 @@
     "cd",
     "gh"
   ],
-  "r16": [],
+  "r16": [
+    "ca"
+  ],
   "qf": [],
   "sf": [],
   "final": [],
