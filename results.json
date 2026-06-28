@@ -1,6 +1,6 @@
 {
   "status": "live",
-  "updated": "2026-06-27T23:01:17.053206+00:00",
+  "updated": "2026-06-28T03:41:14.744338+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {
     "A": [
@@ -56,6 +56,12 @@
       "no",
       "sn",
       "iq"
+    ],
+    "K": [
+      "co",
+      "pt",
+      "cd",
+      "uz"
     ],
     "L": [
       "gb-eng",
@@ -172,8 +178,8 @@
         "cd",
         "uz"
       ],
-      "final": false,
-      "played": 2
+      "final": true,
+      "played": 3
     },
     "L": {
       "order": [
@@ -191,6 +197,8 @@
     "py",
     "ec",
     "se",
+    "sn",
+    "cd",
     "gh"
   ],
   "r16": [],
