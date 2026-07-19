@@ -1,6 +1,6 @@
 {
-  "status": "live",
-  "updated": "2026-07-19T21:51:07.137169+00:00",
+  "status": "complete",
+  "updated": "2026-07-19T22:50:35.805028+00:00",
   "source": "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup",
   "groups": {
     "A": [
@@ -246,5 +246,5 @@
     "es",
     "ar"
   ],
-  "champion": null
+  "champion": "es"
 }
